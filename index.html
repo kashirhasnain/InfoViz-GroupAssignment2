@@ -49,22 +49,6 @@
     <div class="dashboard">
         <div class="header">
             <h1>DASHBOARD</h1>
-
-            <select class="month-select">
-                <option>Month</option>
-                <option>January</option>
-                <option>February</option>
-                <option>March</option>
-                <option>April</option>
-                <option>May</option>
-                <option>June</option>
-                <option>July</option>
-                <option>August</option>
-                <option>September</option>
-                <option>October</option>
-                <option>November</option>
-                <option>December</option>
-            </select>
         </div>
 
        <div class="tabs">
@@ -104,46 +88,69 @@
                 <div class="filters">
                     <h3>Filters</h3>
                     
+                    <button id="resetFilters" class="btn btn--primary" style="width: 100%; margin-bottom: 15px;">
+                        Reset All Filters
+                    </button>
+                    
+                    <div class="filter-group" style="margin-bottom: 80px;">
+                        <div class="filter-group-title">Month</div>
+                        <select class="month-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; margin-top: 5px;">
+                            <option value="">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option> 
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    
                     <div class="filter-group">
                         <div class="filter-group-title">Vehicle Type</div>
                         <div class="filter-option">
                             <input type="checkbox" id="car" checked>
-                            <label for="car">Car</label>
+                            <label for="car">Cars & Taxis</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="bus">
-                            <label for="bus">Bus</label>
+                            <input type="checkbox" id="bike" checked>
+                            <label for="bike">Motorcycles</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="truck">
-                            <label for="truck">Truck</label>
+                            <input type="checkbox" id="bus" checked>
+                            <label for="bus">Buses & Minibuses</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="bike">
-                            <label for="bike">Bike</label>
+                            <input type="checkbox" id="truck" checked>
+                            <label for="truck">Vans & Goods</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="agriculture">
-                            <label for="agriculture">Agriculture Vehicle</label>
+                            <input type="checkbox" id="agriculture" checked>
+                            <label for="agriculture">Active / Special / Other</label>
                         </div>
                     </div>
 
                     <div class="filter-group">
                         <div class="filter-group-title">Engine CC</div>
                         <div class="filter-option">
-                            <input type="checkbox" id="cc100">
+                            <input type="checkbox" id="cc100" checked>
                             <label for="cc100">up to 100 cc</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="cc500">
+                            <input type="checkbox" id="cc500" checked>
                             <label for="cc500">up to 500 cc</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="cc1000">
+                            <input type="checkbox" id="cc1000" checked>
                             <label for="cc1000">up to 1000 cc</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="cc2000">
+                            <input type="checkbox" id="cc2000" checked>
                             <label for="cc2000">up to 2000 cc</label>
                         </div>
                     </div>
@@ -151,20 +158,20 @@
                     <div class="filter-group">
                         <div class="filter-group-title">Vehicle Age</div>
                         <div class="filter-option">
-                            <input type="checkbox" id="age03">
+                            <input type="checkbox" id="age03" checked>
                             <label for="age03">0 - 3</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="age310">
+                            <input type="checkbox" id="age310" checked>
                             <label for="age310">3 - 10</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="age1020">
+                            <input type="checkbox" id="age1020" checked>
                             <label for="age1020">10 - 20</label>
                         </div>
                         <div class="filter-option">
-                            <input type="checkbox" id="age50">
-                            <label for="age50">>50+</label>
+                            <input type="checkbox" id="age50" checked>
+                            <label for="age50">>20</label>
                         </div>
                     </div>
                 </div>
