@@ -51,18 +51,21 @@
             <h1>DASHBOARD</h1>
         </div>
 
-       <div class="tabs">
-            <button class="tab active" data-tab="dashboard1">Dashboard 1 <span class="risk-label"> Analyst and Pricing Managers</span></button>
-            <button class="tab" data-tab="dashboard2">Dashboard 2 <span class="risk-label">Policymakers and Analysts</span></button>
+        <div class="tabs">
+            <button class="tab active" data-tab="dashboard1">Dashboard 1 <span class="risk-label"> Analyst and Pricing
+                    Managers</span></button>
+            <button class="tab" data-tab="dashboard2">Dashboard 2 <span class="risk-label">Policymakers and
+                    Analysts</span></button>
         </div>
 
         <!-- Dashboard 1 Content -->
         <div class="tab-content active" id="dashboard1">
             <div class="layout">
                 <div class="main-content">
+                    <h4> Shows Vehicle Collisions for Year 2024</h4>
                     <!-- Vehicle Statistics -->
                     <div class="vehicle-stats" id="vehicleStats"></div>
-
+                    
                     <!-- Charts Grid -->
                     <div class="charts-grid">
                         <div class="chart-container">
@@ -78,7 +81,8 @@
                             <div id="ageChart"></div>
                         </div>
                         <div class="chart-container">
-                            <div class="chart-title">Distance Banding <span class="risk-label">(Risk Factor)</span></div>
+                            <div class="chart-title">Distance Banding <span class="risk-label">(Risk Factor)</span>
+                            </div>
                             <div id="distanceChart"></div>
                         </div>
                     </div>
@@ -87,19 +91,20 @@
                 <!-- Filters Sidebar -->
                 <div class="filters">
                     <h3>Filters</h3>
-                    
+
                     <button id="resetFilters" class="btn btn--primary" style="width: 100%; margin-bottom: 15px;">
                         Reset All Filters
                     </button>
-                    
+
                     <div class="filter-group" style="margin-bottom: 80px;">
                         <div class="filter-group-title">Month</div>
-                        <select class="month-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; margin-top: 5px;">
+                        <select class="month-select"
+                            style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; margin-top: 5px;">
                             <option value="">All Months</option>
                             <option value="1">January</option>
                             <option value="2">February</option>
                             <option value="3">March</option>
-                            <option value="4">April</option> 
+                            <option value="4">April</option>
                             <option value="5">May</option>
                             <option value="6">June</option>
                             <option value="7">July</option>
@@ -110,7 +115,7 @@
                             <option value="12">December</option>
                         </select>
                     </div>
-                    
+
                     <div class="filter-group">
                         <div class="filter-group-title">Vehicle Type</div>
                         <div class="filter-option">
@@ -184,13 +189,13 @@
                 <div class="main-content">
                     <div style="padding: 40px; text-align: center; color: #666;">
                         <h2>Content Coming Soon </h2>
-                        
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
-     <script src="script.js"></script>
+    <script src="script.js"></script>
     <script src="dashboard.js"></script>
     <br><br>
 </body>

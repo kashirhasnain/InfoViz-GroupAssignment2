@@ -1,40 +1,40 @@
 // Vehicle grouping system
 const vehicleGroups = {
-  '1': 'Active / Personal',
-  '16': 'Active / Personal',
-  '22': 'Active / Personal',
+    '1': 'Active / Personal',
+    '16': 'Active / Personal',
+    '22': 'Active / Personal',
 
-  '2': 'Motorcycles',
-  '3': 'Motorcycles',
-  '4': 'Motorcycles',
-  '5': 'Motorcycles',
-  '23': 'Motorcycles',
-  '97': 'Motorcycles',
-  '103': 'Motorcycles',
-  '104': 'Motorcycles',
-  '105': 'Motorcycles',
-  '106': 'Motorcycles',
+    '2': 'Motorcycles',
+    '3': 'Motorcycles',
+    '4': 'Motorcycles',
+    '5': 'Motorcycles',
+    '23': 'Motorcycles',
+    '97': 'Motorcycles',
+    '103': 'Motorcycles',
+    '104': 'Motorcycles',
+    '105': 'Motorcycles',
+    '106': 'Motorcycles',
 
-  '8': 'Cars & Taxis',
-  '9': 'Cars & Taxis',
-  '108': 'Cars & Taxis',
-  '109': 'Cars & Taxis',
+    '8': 'Cars & Taxis',
+    '9': 'Cars & Taxis',
+    '108': 'Cars & Taxis',
+    '109': 'Cars & Taxis',
 
-  '10': 'Buses & Minibuses',
-  '11': 'Buses & Minibuses',
-  '110': 'Buses & Minibuses',
+    '10': 'Buses & Minibuses',
+    '11': 'Buses & Minibuses',
+    '110': 'Buses & Minibuses',
 
-  '19': 'Vans & Goods',
-  '20': 'Vans & Goods',
-  '21': 'Vans & Goods',
-  '113': 'Vans & Goods',
-  '98': 'Vans & Goods',
+    '19': 'Vans & Goods',
+    '20': 'Vans & Goods',
+    '21': 'Vans & Goods',
+    '113': 'Vans & Goods',
+    '98': 'Vans & Goods',
 
-  '17': 'Special Vehicles',
-  '18': 'Special Vehicles',
+    '17': 'Special Vehicles',
+    '18': 'Special Vehicles',
 
-  '90': 'Other / Unknown',
-  '99': 'Other / Unknown'
+    '90': 'Other / Unknown',
+    '99': 'Other / Unknown'
 };
 
 // Active vehicle filters
@@ -52,44 +52,44 @@ let activeMonthFilter = '';
 // Function to check if vehicle's engine CC matches active filters
 function matchesEngineFilter(engineCC) {
     // If all filters are active, don't filter (show all)
-    if (activeEngineFilters.size === 4 && 
-        activeEngineFilters.has('cc100') && 
-        activeEngineFilters.has('cc500') && 
-        activeEngineFilters.has('cc1000') && 
+    if (activeEngineFilters.size === 4 &&
+        activeEngineFilters.has('cc100') &&
+        activeEngineFilters.has('cc500') &&
+        activeEngineFilters.has('cc1000') &&
         activeEngineFilters.has('cc2000')) {
         return true;
     }
-    
+
     const cc = +engineCC;
     if (isNaN(cc) || cc < 0) return true; // Include vehicles with no/invalid engine CC
-    
+
     if (activeEngineFilters.has('cc100') && cc <= 100) return true;
     if (activeEngineFilters.has('cc500') && cc > 100 && cc <= 500) return true;
     if (activeEngineFilters.has('cc1000') && cc > 500 && cc <= 1000) return true;
     if (activeEngineFilters.has('cc2000') && cc > 1000) return true; // Changed to include > 2000
-    
+
     return false;
 }
 
 // Function to check if vehicle age matches active filters
 function matchesVehicleAgeFilter(vehicleAge) {
     // If all filters are active, don't filter (show all)
-    if (activeVehicleAgeFilters.size === 4 && 
-        activeVehicleAgeFilters.has('age03') && 
-        activeVehicleAgeFilters.has('age310') && 
-        activeVehicleAgeFilters.has('age1020') && 
+    if (activeVehicleAgeFilters.size === 4 &&
+        activeVehicleAgeFilters.has('age03') &&
+        activeVehicleAgeFilters.has('age310') &&
+        activeVehicleAgeFilters.has('age1020') &&
         activeVehicleAgeFilters.has('age50')) {
         return true;
     }
-    
+
     const age = +vehicleAge;
     if (isNaN(age) || age < 0) return true; // Include vehicles with no/invalid age
-    
+
     if (activeVehicleAgeFilters.has('age03') && age >= 0 && age <= 3) return true;
     if (activeVehicleAgeFilters.has('age310') && age > 3 && age <= 10) return true;
     if (activeVehicleAgeFilters.has('age1020') && age > 10 && age <= 20) return true;
     if (activeVehicleAgeFilters.has('age50') && age > 20) return true;
-    
+
     return false;
 }
 
@@ -113,17 +113,17 @@ function resetFilters() {
     activeEngineFilters = new Set(['cc100', 'cc500', 'cc1000', 'cc2000']);
     activeVehicleAgeFilters = new Set(['age03', 'age310', 'age1020', 'age50']);
     activeMonthFilter = '';
-    
+
     // Check all checkboxes
     ['car', 'bus', 'truck', 'bike', 'agriculture', 'cc100', 'cc500', 'cc1000', 'cc2000', 'age03', 'age310', 'age1020', 'age50'].forEach(id => {
         const checkbox = document.getElementById(id);
         if (checkbox) checkbox.checked = true;
     });
-    
+
     // Reset month selector
     const monthSelect = document.querySelector('.month-select');
     if (monthSelect) monthSelect.value = '';
-    
+
     // Refresh both charts
     drawWeatherChart();
     d3.select('#ageChart').selectAll('*').remove();
@@ -132,19 +132,19 @@ function resetFilters() {
 
 //Tabs Change Method
 document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs and contents
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked tab
-                this.classList.add('active');
-                
-                // Show corresponding content
-                const tabId = this.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
+    tab.addEventListener('click', function () {
+        // Remove active class from all tabs and contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Add active class to clicked tab
+        this.classList.add('active');
+
+        // Show corresponding content
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+    });
+});
 //Dashboard1 Method
 // Vehicle icons - keys must match the 'type' field exactly
 const vehicleIcons = {
@@ -157,9 +157,10 @@ const vehicleIcons = {
 
 function drawVehicleStats() {
     const container = d3.select('#vehicleStats');
-    
+
     // Load vehicle data and calculate real collision counts
-    d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function(vehicles) {
+    d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function (vehicles) {
+
         // Count unique collisions per vehicle group
         const groupCollisions = {
             'Cars & Taxis': new Set(),
@@ -168,7 +169,7 @@ function drawVehicleStats() {
             'Vans & Goods': new Set(),
             'Active / Special / Other': new Set()
         };
-        
+
         vehicles.forEach(vehicle => {
             const group = vehicleGroups[vehicle.vehicle_type];
             if (group) {
@@ -180,7 +181,7 @@ function drawVehicleStats() {
                 }
             }
         });
-        
+
         // Convert to array format with real counts
         const vehicleData = [
             { type: 'Cars & Taxis', value: groupCollisions['Cars & Taxis'].size },
@@ -189,10 +190,10 @@ function drawVehicleStats() {
             { type: 'Vans & Goods', value: groupCollisions['Vans & Goods'].size },
             { type: 'Active / Special / Other', value: groupCollisions['Active / Special / Other'].size }
         ];
-        
+
         // Clear existing content
         container.selectAll('*').remove();
-        
+
         // Create cards
         const cards = container.selectAll('.stat-card')
             .data(vehicleData)
@@ -212,8 +213,8 @@ function drawVehicleStats() {
         cards.append('div')
             .attr('class', 'stat-value')
             .text(d => d.value.toLocaleString());
-            
-    }).catch(function(error) {
+
+    }).catch(function (error) {
         console.error("Error loading vehicle stats:", error);
     });
 }
@@ -250,7 +251,7 @@ function drawWeatherChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = {top: 20, right: 80, bottom: 60, left: 120};
+    const margin = { top: 20, right: 80, bottom: 60, left: 120 };
     const chartWidth = containerWidth - margin.left - margin.right;
     const chartHeight = containerHeight - margin.top - margin.bottom;
 
@@ -282,7 +283,7 @@ function drawWeatherChart() {
             '#e67e22', // Other (orange – attention)
             '#7f8c8d'  // Unknown (neutral gray)
         ]);
-    
+
     // Scale x
     const x = d3.scaleLinear().range([0, chartWidth]);
 
@@ -293,11 +294,11 @@ function drawWeatherChart() {
     function countByWeather(data) {
         const counts = {};
         const uniqueCollisions = new Set();
-        
+
         data.forEach(row => {
             const weather = row.weather_conditions;
             const collisionId = row.collision_index;
-            
+
             // Count unique collisions per weather condition
             const key = weather + '_' + collisionId;
             if (!uniqueCollisions.has(key)) {
@@ -326,7 +327,7 @@ function drawWeatherChart() {
 
     // Function to draw and update chart
     function updateChart(chartData) {
-   
+
         y.domain(chartData.map(d => d.label));
         x.domain([0, d3.max(chartData, d => d.count)]).nice();
 
@@ -358,15 +359,15 @@ function drawWeatherChart() {
             .attr("fill", d => colorScale(d.weather))
             .attr("rx", 3)
             .attr("ry", 3)
-            .on("mouseover", function(event, d) {
+            .on("mouseover", function (event, d) {
                 tooltip.style("visibility", "visible")
                     .html(`<strong>${d.label}</strong><br/>Collisions: ${d.count.toLocaleString()}`);
             })
-            .on("mousemove", function(event) {
+            .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
                     .style("left", (event.pageX + 10) + "px");
             })
-            .on("mouseout", function() {
+            .on("mouseout", function () {
                 tooltip.style("visibility", "hidden");
             })
             .transition()
@@ -425,18 +426,18 @@ function drawWeatherChart() {
             .call(d3.axisLeft(y))
             .selectAll("text")
             .style("font-size", "11px")
-            .on("mouseover", function(event, d) {
+            .on("mouseover", function (event, d) {
                 const dataPoint = chartData.find(item => item.label === d);
                 if (dataPoint) {
                     tooltip.style("visibility", "visible")
                         .html(`<strong>${dataPoint.label}</strong><br/>Collisions: ${dataPoint.count.toLocaleString()}`);
                 }
             })
-            .on("mousemove", function(event) {
+            .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
                     .style("left", (event.pageX + 10) + "px");
             })
-            .on("mouseout", function() {
+            .on("mouseout", function () {
                 tooltip.style("visibility", "hidden");
             });
     }
@@ -445,13 +446,13 @@ function drawWeatherChart() {
     Promise.all([
         d3.csv("Raw%20Dataset/collisions_2024.csv"),
         d3.csv("Raw%20Dataset/vehicles_2024.csv")
-    ]).then(function([collisions, vehicles]) {
+    ]).then(function ([collisions, vehicles]) {
         globalVehicleData = vehicles;
-        
+
         // Function to filter collisions by active vehicle types
         function getFilteredCollisions() {
             if (activeVehicleFilters.size === 0) return [];
-            
+
             // Get collision IDs that match the active vehicle filters
             const validCollisionIds = new Set();
             vehicles.forEach(vehicle => {
@@ -460,35 +461,35 @@ function drawWeatherChart() {
                 const matchesVehicle = group && activeVehicleFilters.has(group);
                 const matchesEngine = matchesEngineFilter(vehicle.engine_capacity_cc);
                 const matchesAge = matchesVehicleAgeFilter(vehicle.age_of_vehicle);
-                
+
                 if (matchesVehicle && matchesEngine && matchesAge) {
                     validCollisionIds.add(vehicle.collision_index);
                 }
             });
-            
+
             // Filter collisions by collision IDs and month
             return collisions.filter(collision => {
                 const matchesVehicle = validCollisionIds.has(collision.collision_index);
-                
+
                 // Check month filter
                 if (activeMonthFilter !== '') {
                     const collisionMonth = getMonthFromDate(collision.date);
                     const matchesMonth = collisionMonth === parseInt(activeMonthFilter);
                     return matchesVehicle && matchesMonth;
                 }
-                
+
                 return matchesVehicle;
             });
         }
-        
+
         const initialData = countByWeather(getFilteredCollisions());
         updateChart(initialData);
-        
+
         // Setup filter event listeners
         ['car', 'bus', 'truck', 'bike', 'agriculture'].forEach(filterId => {
             const checkbox = document.getElementById(filterId);
             if (checkbox) {
-                checkbox.addEventListener('change', function() {
+                checkbox.addEventListener('change', function () {
                     // Update active filters based on checkbox mapping
                     if (filterId === 'car') {
                         if (this.checked) activeVehicleFilters.add('Cars & Taxis');
@@ -513,103 +514,109 @@ function drawWeatherChart() {
                             activeVehicleFilters.delete('Other / Unknown');
                         }
                     }
-                    
+
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
-                    
+
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
                 });
             }
         });
-        
+
         // Setup Engine CC filter event listeners
         ['cc100', 'cc500', 'cc1000', 'cc2000'].forEach(filterId => {
             const checkbox = document.getElementById(filterId);
             if (checkbox) {
-                checkbox.addEventListener('change', function() {
+                checkbox.addEventListener('change', function () {
                     // Update active engine filters
                     if (this.checked) {
                         activeEngineFilters.add(filterId);
                     } else {
                         activeEngineFilters.delete(filterId);
                     }
-                    
+
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
-                    
+
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
                 });
             }
         });
-        
+
         // Setup Engine CC filter event listeners
         ['cc100', 'cc500', 'cc1000', 'cc2000'].forEach(filterId => {
             const checkbox = document.getElementById(filterId);
             if (checkbox) {
-                checkbox.addEventListener('change', function() {
+                checkbox.addEventListener('change', function () {
                     // Update active engine filters
                     if (this.checked) {
                         activeEngineFilters.add(filterId);
                     } else {
                         activeEngineFilters.delete(filterId);
                     }
-                    
+
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
-                    
+
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
                 });
             }
         });
-        
+
         // Setup Vehicle Age filter event listeners
         ['age03', 'age310', 'age1020', 'age50'].forEach(filterId => {
             const checkbox = document.getElementById(filterId);
             if (checkbox) {
-                checkbox.addEventListener('change', function() {
+                checkbox.addEventListener('change', function () {
                     // Update active vehicle age filters
                     if (this.checked) {
                         activeVehicleAgeFilters.add(filterId);
                     } else {
                         activeVehicleAgeFilters.delete(filterId);
                     }
-                    
+
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
-                    
+
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
                 });
             }
         });
-        
+
         // Setup Month filter event listener
         const monthSelect = document.querySelector('.month-select');
         if (monthSelect) {
-            monthSelect.addEventListener('change', function() {
+            monthSelect.addEventListener('change', function () {
                 activeMonthFilter = this.value;
-                
+
                 // Refresh weather chart
                 const filteredData = countByWeather(getFilteredCollisions());
                 updateChart(filteredData);
-                
+
+                //Refresh Vehicle Stats
+                drawVehicleStats();
+                if (window.updateDistanceChart) {
+                    window.updateDistanceChart();
+                }
+
                 // Refresh age chart
                 d3.select('#ageChart').selectAll('*').remove();
                 drawAgeChart();
             });
         }
-    }).catch(function(error) {
+    }).catch(function (error) {
         console.error("Error loading the data:", error);
         container.append("div")
             .style("padding", "20px")
@@ -621,6 +628,350 @@ function drawWeatherChart() {
 
 // Initialize weather chart
 drawWeatherChart();
+
+
+// Distance Banding Line Chart
+function drawDistanceChart() {
+    const container = d3.select("#distanceChart");
+    const containerWidth = container.node().getBoundingClientRect().width || 400;
+    const containerHeight = 350;
+
+    // Clear any existing content
+    container.selectAll("*").remove();
+
+    // Create tooltip
+    let tooltip = d3.select("#distance-tooltip");
+    if (tooltip.empty()) {
+        tooltip = d3.select("body").append("div")
+            .attr("id", "distance-tooltip")
+            .style("position", "absolute")
+            .style("visibility", "hidden")
+            .style("background-color", "rgba(0, 0, 0, 0.8)")
+            .style("color", "white")
+            .style("padding", "10px")
+            .style("border-radius", "5px")
+            .style("font-size", "12px")
+            .style("pointer-events", "none")
+            .style("z-index", "1000");
+    }
+
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight);
+
+    const margin = { top: 20, right: 30, bottom: 60, left: 80 };
+    const width = containerWidth - margin.left - margin.right;
+    const height = containerHeight - margin.top - margin.bottom;
+
+    const chart = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Distance band labels - using position index for x-axis
+    const distanceBands = {
+        '1': { label: '0-5 km', position: 1 },
+        '2': { label: '5-10 km', position: 2 },
+        '3': { label: '10-20 km', position: 3 },
+        '4': { label: '20-100 km', position: 4 },
+        '5': { label: '100+ km', position: 5 }
+    };
+
+    // Function to calculate appropriate interval based on max value
+    function getYAxisInterval(maxValue) {
+        if (maxValue <= 100) return 10;
+        if (maxValue <= 500) return 50;
+        if (maxValue <= 1000) return 100;
+        if (maxValue <= 2500) return 250;
+        if (maxValue <= 5000) return 500;
+        if (maxValue <= 10000) return 1000;
+        if (maxValue <= 25000) return 2500;
+        if (maxValue <= 50000) return 5000;
+        return 10000;
+    }
+
+    // Function to count collisions by distance band
+    function countByDistance(casualties) {
+        const counts = {
+            '1': 0,
+            '2': 0,
+            '3': 0,
+            '4': 0,
+            '5': 0
+        };
+
+        const uniqueCollisions = new Set();
+
+        casualties.forEach(casualty => {
+            const distanceBand = casualty.casualty_distance_banding;
+            const collisionId = casualty.collision_index;
+            const key = distanceBand + '_' + collisionId;
+
+            // Only count valid distance bands and unique collisions
+            if (!uniqueCollisions.has(key) && counts.hasOwnProperty(distanceBand)) {
+                uniqueCollisions.add(key);
+                counts[distanceBand]++;
+            }
+        });
+
+        // Convert to array with positions for plotting
+        return Object.keys(counts).map(code => ({
+            code: code,
+            label: distanceBands[code].label,
+            position: distanceBands[code].position,
+            count: counts[code]
+        }));
+    }
+
+    // Function to update chart
+    function updateChart(distanceData) {
+        // Calculate max value and appropriate interval
+        const maxCount = d3.max(distanceData, d => d.count) || 10;
+        const interval = getYAxisInterval(maxCount);
+        const yMax = Math.ceil(maxCount / interval) * interval;
+
+        // Scales - using position (1-5) instead of actual distance
+        const x = d3.scaleLinear()
+            .domain([0.5, 5.5])  // Padding on both sides
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, yMax])
+            .range([height, 0]);
+
+        // Calculate number of ticks
+        const numTicks = Math.min(10, yMax / interval);
+
+        // Grid lines
+        chart.selectAll(".grid-line").remove();
+
+        const yTickValues = [];
+        for (let i = 0; i <= numTicks; i++) {
+            yTickValues.push(i * interval);
+        }
+
+        chart.append("g")
+            .attr("class", "grid")
+            .selectAll("line")
+            .data(yTickValues)
+            .enter()
+            .append("line")
+            .attr("class", "grid-line")
+            .attr("x1", 0)
+            .attr("x2", width)
+            .attr("y1", d => y(d))
+            .attr("y2", d => y(d))
+            .attr("stroke", "#e0e0e0")
+            .attr("stroke-dasharray", "3,3");
+
+        // Line generator
+        const line = d3.line()
+            .x(d => x(d.position))
+            .y(d => y(d.count))
+            .curve(d3.curveMonotoneX);
+
+        // Area generator
+        const area = d3.area()
+            .x(d => x(d.position))
+            .y0(height)
+            .y1(d => y(d.count))
+            .curve(d3.curveMonotoneX);
+
+        // Remove old paths
+        chart.selectAll(".line-path").remove();
+        chart.selectAll(".area-path").remove();
+
+        // Draw area
+        chart.append("path")
+            .datum(distanceData)
+            .attr("class", "area-path")
+            .attr("fill", "#14e12c")
+            .attr("opacity", 0.6)
+            .attr("d", area);
+
+        // Draw line
+        chart.append("path")
+            .datum(distanceData)
+            .attr("class", "line-path")
+            .attr("fill", "none")
+            .attr("stroke", "#e74c3c")
+            .attr("stroke-width", 3)
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .attr("d", line);
+
+        // Remove old dots
+        chart.selectAll(".dot").remove();
+        chart.selectAll(".value-label").remove();
+
+        // Draw dots
+        chart.selectAll(".dot")
+            .data(distanceData)
+            .enter()
+            .append("circle")
+            .attr("class", "dot")
+            .attr("cx", d => x(d.position))
+            .attr("cy", d => y(d.count))
+            .attr("r", 6)
+            .attr("fill", "#e74c3c")
+            .attr("stroke", "white")
+            .attr("stroke-width", 2)
+            .style("cursor", "pointer")
+            .on("mouseover", function (event, d) {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 8);
+
+                tooltip.style("visibility", "visible")
+                    .html(`<strong>${d.label}</strong><br/>Collisions: ${d.count.toLocaleString()}`);
+            })
+            .on("mousemove", function (event) {
+                tooltip.style("top", (event.pageY - 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 6);
+
+                tooltip.style("visibility", "hidden");
+            });
+
+        // Add value labels on dots
+        chart.selectAll(".value-label")
+            .data(distanceData)
+            .enter()
+            .append("text")
+            .attr("class", "value-label")
+            .attr("x", d => x(d.position))
+            .attr("y", d => y(d.count) - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "11px")
+            .style("font-weight", "bold")
+            .style("fill", "#111010")
+            .text(d => d.count.toLocaleString());
+
+        // Remove old axes
+        chart.selectAll(".x-axis").remove();
+        chart.selectAll(".y-axis").remove();
+        chart.selectAll(".axis-label").remove();
+
+        // X Axis with custom labels
+        const xAxis = d3.axisBottom(x)
+            .tickValues([1, 2, 3, 4, 5])
+            .tickFormat(d => {
+                const band = distanceData.find(item => item.position === d);
+                return band ? band.label : '';
+            });
+
+        chart.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0,${height})`)
+            .call(xAxis)
+            .selectAll("text")
+            .style("font-size", "11px")
+            .style("text-anchor", "middle");
+
+        // Y Axis with dynamic intervals
+        const yAxis = d3.axisLeft(y)
+            .tickValues(yTickValues)
+            .tickFormat(d => d.toLocaleString());
+
+        chart.append("g")
+            .attr("class", "y-axis")
+            .call(yAxis)
+            .selectAll("text")
+            .style("font-size", "11px");
+
+        // X Axis Label
+        chart.append("text")
+            .attr("class", "axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + 45)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666")
+            .text("Distance from Casualty's Home");
+
+        // Y Axis Label
+        chart.append("text")
+            .attr("class", "axis-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -60)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666")
+            .text("Number of Collisions");
+    }
+
+    // Load casualties, collisions, and vehicle data
+    Promise.all([
+        d3.csv("Raw%20Dataset/casualties_2024.csv"),
+        d3.csv("Raw%20Dataset/collisions_2024.csv"),
+        d3.csv("Raw%20Dataset/vehicles_2024.csv")
+    ]).then(function ([casualties, collisions, vehicles]) {
+
+        // Function to filter casualties based on active filters
+        function getFilteredCasualties() {
+            if (activeVehicleFilters.size === 0) return [];
+
+            // Get collision IDs that match the active vehicle filters
+            const validCollisionIds = new Set();
+            vehicles.forEach(vehicle => {
+                const vehicleType = vehicle.vehicle_type;
+                const group = vehicleGroups[vehicleType];
+                const matchesVehicle = group && activeVehicleFilters.has(group);
+                const matchesEngine = matchesEngineFilter(vehicle.engine_capacity_cc);
+                const matchesAge = matchesVehicleAgeFilter(vehicle.age_of_vehicle);
+
+                if (matchesVehicle && matchesEngine && matchesAge) {
+                    validCollisionIds.add(vehicle.collision_index);
+                }
+            });
+
+            // Filter by month if selected
+            let filteredCollisionIds = validCollisionIds;
+            if (activeMonthFilter !== '') {
+                filteredCollisionIds = new Set();
+                collisions.forEach(collision => {
+                    if (validCollisionIds.has(collision.collision_index)) {
+                        const collisionMonth = getMonthFromDate(collision.date);
+                        if (collisionMonth === parseInt(activeMonthFilter)) {
+                            filteredCollisionIds.add(collision.collision_index);
+                        }
+                    }
+                });
+            }
+
+            // Filter casualties by the filtered collision IDs
+            return casualties.filter(casualty =>
+                filteredCollisionIds.has(casualty.collision_index)
+            );
+        }
+
+        // Initial draw
+        const initialData = countByDistance(getFilteredCasualties());
+        updateChart(initialData);
+
+        // Store update function globally so filters can refresh this chart
+        window.updateDistanceChart = function () {
+            const filteredData = countByDistance(getFilteredCasualties());
+            updateChart(filteredData);
+        };
+
+    }).catch(function (error) {
+        console.error("Error loading distance data:", error);
+        container.append("div")
+            .style("padding", "20px")
+            .style("text-align", "center")
+            .style("color", "#e74c3c")
+            .text("Error loading distance data");
+    });
+}
+
+// Initialize distance chart
+drawDistanceChart();
 
 //                                 Driver Age Groups Pie Chart
 function drawAgeChart() {
@@ -635,13 +986,13 @@ function drawAgeChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = {top: 20, right: 20, bottom: 20, left: 20};
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
     const radius = Math.min(width, height) / 2;
 
     const chart = svg.append("g")
-        .attr("transform", `translate(${containerWidth/2},${containerHeight/2})`);
+        .attr("transform", `translate(${containerWidth / 2},${containerHeight / 2})`);
 
     // Create tooltip
     let tooltip = d3.select("#age-pie-tooltip");
@@ -684,7 +1035,7 @@ function drawAgeChart() {
             '>55': 0,
             'Unknown': 0
         };
-        
+
         const uniqueCollisions = {};
 
         data.forEach(row => {
@@ -729,7 +1080,7 @@ function drawAgeChart() {
         .outerRadius(radius - 10);
 
     // Load and process data
-    d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function(data) {
+    d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function (data) {
         // Filter vehicles by active vehicle type filters, engine CC filters, AND vehicle age filters
         const filteredData = data.filter(vehicle => {
             const group = vehicleGroups[vehicle.vehicle_type];
@@ -738,7 +1089,7 @@ function drawAgeChart() {
             const matchesAge = matchesVehicleAgeFilter(vehicle.age_of_vehicle);
             return matchesVehicle && matchesEngine && matchesAge;
         });
-        
+
         const ageData = countByAgeGroup(filteredData);
         const total = d3.sum(ageData, d => d.count);
 
@@ -755,7 +1106,7 @@ function drawAgeChart() {
             .attr("stroke", "white")
             .attr("stroke-width", 2)
             .style("opacity", 0.9)
-            .on("mouseover", function(event, d) {
+            .on("mouseover", function (event, d) {
                 d3.select(this)
                     .transition()
                     .duration(200)
@@ -766,24 +1117,24 @@ function drawAgeChart() {
                 tooltip.style("visibility", "visible")
                     .html(`<strong>${d.data.group}</strong><br/>Collisions: ${d.data.count.toLocaleString()}<br/>Percentage: ${percentage}%`);
             })
-            .on("mousemove", function(event) {
+            .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
                     .style("left", (event.pageX + 10) + "px");
             })
-            .on("mouseout", function() {
+            .on("mouseout", function () {
                 d3.select(this)
                     .transition()
                     .duration(200)
                     .attr("d", arc)
                     .style("opacity", 0.9);
-                
+
                 tooltip.style("visibility", "hidden");
             })
             .transition()
             .duration(1000)
-            .attrTween("d", function(d) {
-                const interpolate = d3.interpolate({startAngle: 0, endAngle: 0}, d);
-                return function(t) {
+            .attrTween("d", function (d) {
+                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                return function (t) {
                     return arc(interpolate(t));
                 };
             });
@@ -829,7 +1180,7 @@ function drawAgeChart() {
             .style("fill", "#333")
             .text(d => `${d.group}`);
 
-    }).catch(function(error) {
+    }).catch(function (error) {
         console.error("Error loading the data:", error);
         container.append("div")
             .style("padding", "20px")
@@ -843,7 +1194,7 @@ function drawAgeChart() {
 drawAgeChart();
 
 // Setup reset button event listener
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const resetButton = document.getElementById('resetFilters');
     if (resetButton) {
         resetButton.addEventListener('click', resetFilters);
