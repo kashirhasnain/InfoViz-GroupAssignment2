@@ -167,7 +167,7 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 280px 1fr;
   gap: 30px;
 }
 
@@ -179,8 +179,8 @@ body {
 
 .vehicle-stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
   padding: 20px 0;
 }
 
@@ -188,6 +188,7 @@ body {
   text-align: center;
   cursor: pointer;
   transition: transform 0.2s;
+  min-width: 120px;
 }
 
 .stat-card:hover {
@@ -208,7 +209,7 @@ body {
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #333;
 }
@@ -425,4 +426,35 @@ svg {
 
 .bar:hover {
   opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 250px 1fr;
+    gap: 20px;
+  }
+  
+  .vehicle-stats {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters {
+    order: -1;
+  }
+  
+  .vehicle-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -61,34 +61,7 @@
         <!-- Dashboard 1 Content -->
         <div class="tab-content active" id="dashboard1">
             <div class="layout">
-                <div class="main-content">
-                    <h4> Shows Vehicle Collisions for Year 2024</h4>
-                    <!-- Vehicle Statistics -->
-                    <div class="vehicle-stats" id="vehicleStats"></div>
-                    
-                    <!-- Charts Grid -->
-                    <div class="charts-grid">
-                        <div class="chart-container">
-                            <div class="chart-title">Vehicle Point of Impact</div>
-                            <div id="impactChart"></div>
-                        </div>
-                        <div class="chart-container">
-                            <div class="chart-title">Weather Conditions</div>
-                            <div id="weatherChart"></div>
-                        </div>
-                        <div class="chart-container">
-                            <div class="chart-title">Collisions by Driver Age Group</div>
-                            <div id="ageChart"></div>
-                        </div>
-                        <div class="chart-container">
-                            <div class="chart-title">Distance Banding <span class="risk-label">(Risk Factor)</span>
-                            </div>
-                            <div id="distanceChart"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters Sidebar -->
+                <!-- Filters Sidebar - NOW FIRST -->
                 <div class="filters">
                     <h3>Filters</h3>
 
@@ -177,6 +150,34 @@
                         <div class="filter-option">
                             <input type="checkbox" id="age50" checked>
                             <label for="age50">>20</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content - NOW SECOND -->
+                <div class="main-content">
+                    <h4> Shows Vehicle Collisions for Year 2024</h4>
+                    <!-- Vehicle Statistics -->
+                    <div class="vehicle-stats" id="vehicleStats"></div>
+                    
+                    <!-- Charts Grid -->
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <div class="chart-title">Vehicle Point of Impact</div>
+                            <div id="impactChart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">Weather Conditions</div>
+                            <div id="weatherChart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">Collisions by Driver Age Group</div>
+                            <div id="ageChart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">Distance Banding <span class="risk-label">(Risk Factor)</span>
+                            </div>
+                            <div id="distanceChart"></div>
                         </div>
                     </div>
                 </div>
