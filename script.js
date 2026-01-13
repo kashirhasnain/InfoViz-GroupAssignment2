@@ -132,6 +132,10 @@ function resetFilters() {
     if (window.updateImpactChart) {
         window.updateImpactChart();
     }
+    if (window.updateDistanceChart) {
+        window.updateDistanceChart();
+    }
+    
 }
 
 //Tabs Change Method
@@ -225,6 +229,7 @@ function drawVehicleStats() {
 
 drawVehicleStats();
 // Vehicle Point of Impact Donut Chart
+// Vehicle Point of Impact Donut Chart
 function drawImpactChart() {
     const container = d3.select("#impactChart");
     const containerWidth = container.node().getBoundingClientRect().width || 400;
@@ -268,21 +273,19 @@ function drawImpactChart() {
         '2': 'Back',
         '3': 'Offside',
         '4': 'Nearside',
-        '9': 'Unknown',
-        '-1': 'Missing data'
+        'unknown': 'Unknown / Missing'
     };
 
     // Color scale for impact points
     const colorScale = d3.scaleOrdinal()
-        .domain(['1', '2', '3', '4', '0', '9', '-1'])
+        .domain(['1', '2', '3', '4', '0', 'unknown'])
         .range([
             '#3498db', // Front - blue
             '#e74c3c', // Back - red
             '#f39c12', // Offside - orange
             '#9b59b6', // Nearside - purple
-            '#95a5a6', // Did not impact - gray
-            '#7f8c8d', // Unknown - dark gray
-            '#bdc3c7'  // Missing data - light gray
+            '#07dceb', // Did not impact - gray
+            '#7f8c8d'  // Unknown/Missing - dark gray
         ]);
 
     // Function to count collisions by impact point
@@ -293,8 +296,7 @@ function drawImpactChart() {
             '2': 0,
             '3': 0,
             '4': 0,
-            '9': 0,
-            '-1': 0
+            'unknown': 0
         };
 
         const uniqueCollisions = {};
@@ -310,11 +312,12 @@ function drawImpactChart() {
             if (!uniqueCollisions[collisionId]) {
                 uniqueCollisions[collisionId] = new Set();
             }
-
-            if (impactCounts.hasOwnProperty(normalizedImpact)) {
+            
+            // Map '9' and '-1' to 'unknown'
+            if (normalizedImpact === '9' || normalizedImpact === '-1' || !impactCounts.hasOwnProperty(normalizedImpact)) {
+                uniqueCollisions[collisionId].add('unknown');
+            } else if (impactCounts.hasOwnProperty(normalizedImpact)) {
                 uniqueCollisions[collisionId].add(normalizedImpact);
-            } else {
-                uniqueCollisions[collisionId].add('-1'); // Missing/invalid data
             }
         });
 
@@ -422,7 +425,7 @@ function drawImpactChart() {
 
         // Add center text
         chart.selectAll(".center-text").remove();
-
+        
         chart.append("text")
             .attr("class", "center-text")
             .attr("text-anchor", "middle")
@@ -442,7 +445,7 @@ function drawImpactChart() {
 
         // Update legend
         svg.selectAll(".legend-item").remove();
-
+        
         const legend = svg.append("g")
             .attr("transform", `translate(20, 20)`);
 
@@ -475,7 +478,7 @@ function drawImpactChart() {
 
         // Function to get filtered vehicles based on active filters
         function getFilteredVehicles() {
-            if (activeVehicleFilters.size === 0) return [];
+            if (typeof activeVehicleFilters === 'undefined' || activeVehicleFilters.size === 0) return vehicles;
 
             let filteredVehicles = vehicles.filter(vehicle => {
                 const vehicleType = vehicle.vehicle_type;
@@ -488,7 +491,7 @@ function drawImpactChart() {
             });
 
             // Apply month filter if set
-            if (activeMonthFilter !== '') {
+            if (typeof activeMonthFilter !== 'undefined' && activeMonthFilter !== '') {
                 const validCollisionIds = new Set();
                 collisions.forEach(collision => {
                     const collisionMonth = getMonthFromDate(collision.date);
@@ -515,7 +518,6 @@ function drawImpactChart() {
             updateChart(filteredData);
         };
 
-
     }).catch(function (error) {
         console.error("Error loading impact data:", error);
         container.append("div")
@@ -528,6 +530,8 @@ function drawImpactChart() {
 
 // Initialize impact chart
 drawImpactChart();
+
+
 
 //                                 Weather Conditions Bar Chart
 function drawWeatherChart() {
@@ -834,6 +838,9 @@ function drawWeatherChart() {
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
+                    if (window.updateImpactChart) {
+                        window.updateDistanceChart();
+                    }
                 });
             }
         });
@@ -857,37 +864,12 @@ function drawWeatherChart() {
                     if (window.updateImpactChart) {
                         window.updateImpactChart();
                     }
-
+                    if (window.updateDistanceChart) {
+                        window.updateDistanceChart();
+                    }
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
-                });
-            }
-        });
-
-        // Setup Engine CC filter event listeners
-        ['cc100', 'cc500', 'cc1000', 'cc2000'].forEach(filterId => {
-            const checkbox = document.getElementById(filterId);
-            if (checkbox) {
-                checkbox.addEventListener('change', function () {
-                    // Update active engine filters
-                    if (this.checked) {
-                        activeEngineFilters.add(filterId);
-                    } else {
-                        activeEngineFilters.delete(filterId);
-                    }
-
-                    // Refresh weather chart
-                    const filteredData = countByWeather(getFilteredCollisions());
-                    updateChart(filteredData);
-
-                    // Refresh age chart
-                    d3.select('#ageChart').selectAll('*').remove();
-                    drawAgeChart();
-                    // Refresh impact chart
-                    if (window.updateImpactChart) {
-                        window.updateImpactChart();
-                    }
                 });
             }
         });
@@ -907,6 +889,9 @@ function drawWeatherChart() {
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
+                    if (window.updateImpactChart) {
+                        window.updateDistanceChart();
+                    }
 
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
@@ -1314,19 +1299,27 @@ function drawAgeChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const margin = { top: 40, right: 20, bottom: 20, left: 20 };
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
-    const radius = Math.min(width, height) / 2;
 
     const chart = svg.append("g")
-        .attr("transform", `translate(${containerWidth / 2},${containerHeight / 2})`);
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Add title
+    svg.append("text")
+        .attr("x", containerWidth / 2)
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+        .style("fill", "#333");
 
     // Create tooltip
-    let tooltip = d3.select("#age-pie-tooltip");
+    let tooltip = d3.select("#age-tree-tooltip");
     if (tooltip.empty()) {
         tooltip = d3.select("body").append("div")
-            .attr("id", "age-pie-tooltip")
+            .attr("id", "age-tree-tooltip")
             .style("position", "absolute")
             .style("visibility", "hidden")
             .style("background-color", "rgba(0, 0, 0, 0.8)")
@@ -1392,21 +1385,6 @@ function drawAgeChart() {
         })).filter(d => d.count > 0);
     }
 
-    // Pie generator
-    const pie = d3.pie()
-        .value(d => d.count)
-        .sort(null);
-
-    // Arc generator
-    const arc = d3.arc()
-        .innerRadius(0)
-        .outerRadius(radius - 20);
-
-    // Arc for hover effect
-    const arcHover = d3.arc()
-        .innerRadius(0)
-        .outerRadius(radius - 10);
-
     // Load and process data
     d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function (data) {
         // Filter vehicles by active vehicle type filters, engine CC filters, AND vehicle age filters
@@ -1421,29 +1399,52 @@ function drawAgeChart() {
         const ageData = countByAgeGroup(filteredData);
         const total = d3.sum(ageData, d => d.count);
 
-        // Create pie slices
-        const slices = chart.selectAll(".arc")
-            .data(pie(ageData))
+        // Create hierarchical data structure for treemap
+        const hierarchicalData = {
+            name: "Age Groups",
+            children: ageData.map(d => ({
+                name: d.group,
+                value: d.count
+            }))
+        };
+
+        // Create treemap layout
+        const treemap = d3.treemap()
+            .size([width, height])
+            .padding(2)
+            .round(true);
+
+        // Create hierarchy
+        const root = d3.hierarchy(hierarchicalData)
+            .sum(d => d.value)
+            .sort((a, b) => b.value - a.value);
+
+        // Generate treemap
+        treemap(root);
+
+        // Create cells
+        const cells = chart.selectAll("g")
+            .data(root.leaves())
             .enter()
             .append("g")
-            .attr("class", "arc");
+            .attr("transform", d => `translate(${d.x0},${d.y0})`);
 
-        slices.append("path")
-            .attr("d", arc)
-            .attr("fill", d => colorScale(d.data.group))
+        // Add rectangles
+        cells.append("rect")
+            .attr("width", 0)
+            .attr("height", 0)
+            .attr("fill", d => colorScale(d.data.name))
             .attr("stroke", "white")
             .attr("stroke-width", 2)
-            .style("opacity", 0.9)
+            .style("opacity", 0.85)
             .on("mouseover", function (event, d) {
                 d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("d", arcHover)
-                    .style("opacity", 1);
+                    .style("opacity", 1)
+                    .attr("stroke-width", 3);
 
-                const percentage = ((d.data.count / total) * 100).toFixed(1);
+                const percentage = ((d.data.value / total) * 100).toFixed(1);
                 tooltip.style("visibility", "visible")
-                    .html(`<strong>${d.data.group}</strong><br/>Collisions: ${d.data.count.toLocaleString()}<br/>Percentage: ${percentage}%`);
+                    .html(`<strong>${d.data.name}</strong><br/>Collisions: ${d.data.value.toLocaleString()}<br/>Percentage: ${percentage}%`);
             })
             .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
@@ -1451,62 +1452,61 @@ function drawAgeChart() {
             })
             .on("mouseout", function () {
                 d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("d", arc)
-                    .style("opacity", 0.9);
+                    .style("opacity", 0.85)
+                    .attr("stroke-width", 2);
 
                 tooltip.style("visibility", "hidden");
             })
             .transition()
-            .duration(1000)
-            .attrTween("d", function (d) {
-                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
-                return function (t) {
-                    return arc(interpolate(t));
-                };
-            });
+            .duration(800)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0);
 
         // Add labels
-        slices.append("text")
-            .attr("transform", d => `translate(${arc.centroid(d)})`)
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 - 10)
             .attr("text-anchor", "middle")
-            .style("font-size", "11px")
+            .style("font-size", "14px")
             .style("font-weight", "bold")
             .style("fill", "white")
             .style("opacity", 0)
-            .text(d => {
-                const percentage = ((d.data.count / total) * 100);
-                return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
-            })
+            .text(d => d.data.name)
             .transition()
-            .delay(1000)
-            .duration(500)
+            .delay(800)
+            .duration(400)
             .style("opacity", 1);
 
-        // Add legend
-        const legend = svg.append("g")
-            .attr("transform", `translate(20, 20)`);
+        // Add count labels
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 + 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "white")
+            .style("opacity", 0)
+            .text(d => d.data.value.toLocaleString())
+            .transition()
+            .delay(800)
+            .duration(400)
+            .style("opacity", 0.9);
 
-        const legendItems = legend.selectAll(".legend-item")
-            .data(ageData)
-            .enter()
-            .append("g")
-            .attr("class", "legend-item")
-            .attr("transform", (d, i) => `translate(0, ${i * 20})`);
-
-        legendItems.append("rect")
-            .attr("width", 12)
-            .attr("height", 12)
-            .attr("fill", d => colorScale(d.group))
-            .attr("rx", 2);
-
-        legendItems.append("text")
-            .attr("x", 18)
-            .attr("y", 10)
+        // Add percentage labels
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 + 25)
+            .attr("text-anchor", "middle")
             .style("font-size", "11px")
-            .style("fill", "#333")
-            .text(d => `${d.group}`);
+            .style("fill", "white")
+            .style("opacity", 0)
+            .text(d => {
+                const percentage = ((d.data.value / total) * 100).toFixed(1);
+                return `${percentage}%`;
+            })
+            .transition()
+            .delay(800)
+            .duration(400)
+            .style("opacity", 0.8);
 
     }).catch(function (error) {
         console.error("Error loading the data:", error);

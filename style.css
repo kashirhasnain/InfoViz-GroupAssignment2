@@ -125,7 +125,7 @@ body {
   font-size: 13px;
   cursor: pointer;
   background: white;
-  float: right;
+  float: left;
 }
 
 .tabs {
