@@ -38,7 +38,7 @@ const vehicleGroups = {
 };
 
 // Active vehicle filters
-let activeVehicleFilters = new Set(['Cars & Taxis', 'Motorcycles', 'Buses & Minibuses', 'Vans & Goods', 'Active / Personal', 'Special Vehicles', 'Other / Unknown']);
+let activeVehicleFilters = new Set(['Cars & Taxis', 'Motorcycles', 'Buses & Minibuses', 'Vans & Goods', 'Agriculture / Personal', 'Special Vehicles', 'Other / Unknown']);
 
 // Active engine CC filters
 let activeEngineFilters = new Set(['cc100', 'cc500', 'cc1000', 'cc2000']);
@@ -109,7 +109,7 @@ let globalVehicleData = [];
 // Function to reset all filters
 function resetFilters() {
     // Reset all filter sets to include all options
-    activeVehicleFilters = new Set(['Cars & Taxis', 'Motorcycles', 'Buses & Minibuses', 'Vans & Goods', 'Active / Personal', 'Special Vehicles', 'Other / Unknown']);
+    activeVehicleFilters = new Set(['Cars & Taxis', 'Motorcycles', 'Buses & Minibuses', 'Vans & Goods', 'Agriculture / Personal', 'Special Vehicles', 'Other / Unknown']);
     activeEngineFilters = new Set(['cc100', 'cc500', 'cc1000', 'cc2000']);
     activeVehicleAgeFilters = new Set(['age03', 'age310', 'age1020', 'age50']);
     activeMonthFilter = '';
@@ -232,8 +232,8 @@ drawVehicleStats();
 // Vehicle Point of Impact Donut Chart
 function drawImpactChart() {
     const container = d3.select("#impactChart");
-    const containerWidth = container.node().getBoundingClientRect().width || 400;
-    const containerHeight = 350;
+    const containerWidth = container.node().getBoundingClientRect().width || 500;
+    const containerHeight = 500;
 
     // Clear any existing content
     container.selectAll("*").remove();
@@ -242,13 +242,22 @@ function drawImpactChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const margin = { top: 40, right: 20, bottom: 20, left: 20 };
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
-    const radius = Math.min(width, height) / 2;
 
     const chart = svg.append("g")
-        .attr("transform", `translate(${containerWidth / 2},${containerHeight / 2})`);
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Add title
+    svg.append("text")
+        .attr("x", containerWidth / 2)
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+        .style("fill", "#333")
+        .text("Vehicle Point of Impact");
 
     // Create tooltip
     let tooltip = d3.select("#impact-tooltip");
@@ -268,12 +277,12 @@ function drawImpactChart() {
 
     // Impact point labels and colors
     const impactLabels = {
-        '0': 'Did not impact',
+        '0': 'No Impact',
         '1': 'Front',
         '2': 'Back',
         '3': 'Offside',
         '4': 'Nearside',
-        'unknown': 'Unknown / Missing'
+        'unknown': 'Unknown Data'
     };
 
     // Color scale for impact points
@@ -284,7 +293,7 @@ function drawImpactChart() {
             '#e74c3c', // Back - red
             '#f39c12', // Offside - orange
             '#9b59b6', // Nearside - purple
-            '#07dceb', // Did not impact - gray
+            '#07dceb', // Did not impact - cyan
             '#7f8c8d'  // Unknown/Missing - dark gray
         ]);
 
@@ -338,51 +347,60 @@ function drawImpactChart() {
             .filter(d => d.count > 0);
     }
 
-    // Pie generator
-    const pie = d3.pie()
-        .value(d => d.count)
-        .sort(null);
-
-    // Arc generators - donut chart style
-    const arc = d3.arc()
-        .innerRadius(radius * 0.5)  // Inner radius for donut
-        .outerRadius(radius - 20);
-
-    // Arc for hover effect
-    const arcHover = d3.arc()
-        .innerRadius(radius * 0.5)
-        .outerRadius(radius - 10);
-
     // Function to update chart
     function updateChart(impactData) {
         const total = d3.sum(impactData, d => d.count);
 
-        // Remove old slices
-        chart.selectAll(".arc").remove();
+        // Clear previous chart content
+        chart.selectAll("*").remove();
 
-        // Create pie slices
-        const slices = chart.selectAll(".arc")
-            .data(pie(impactData))
+        // Create hierarchical data structure for treemap
+        const hierarchicalData = {
+            name: "Impact Points",
+            children: impactData.map(d => ({
+                name: d.label,
+                code: d.code,
+                value: d.count
+            }))
+        };
+
+        // Create treemap layout
+        const treemap = d3.treemap()
+            .size([width, height])
+            .padding(2)
+            .round(true);
+
+        // Create hierarchy
+        const root = d3.hierarchy(hierarchicalData)
+            .sum(d => d.value)
+            .sort((a, b) => b.value - a.value);
+
+        // Generate treemap
+        treemap(root);
+
+        // Create cells
+        const cells = chart.selectAll("g")
+            .data(root.leaves())
             .enter()
             .append("g")
-            .attr("class", "arc");
+            .attr("transform", d => `translate(${d.x0},${d.y0})`);
 
-        slices.append("path")
-            .attr("d", arc)
+        // Add rectangles
+        cells.append("rect")
+            .attr("width", 0)
+            .attr("height", 0)
             .attr("fill", d => colorScale(d.data.code))
             .attr("stroke", "white")
             .attr("stroke-width", 2)
-            .style("opacity", 0.9)
+            .style("opacity", 0.85)
             .on("mouseover", function (event, d) {
                 d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("d", arcHover)
-                    .style("opacity", 1);
+                    .style("opacity", 1)
+                    .attr("stroke-width", 3);
 
-                const percentage = ((d.data.count / total) * 100).toFixed(1);
+                const percentage = ((d.data.value / total) * 100).toFixed(1);
                 tooltip.style("visibility", "visible")
-                    .html(`<strong>${d.data.label}</strong><br/>Collisions: ${d.data.count.toLocaleString()}<br/>Percentage: ${percentage}%`);
+                    .html(`<strong>${d.data.name}</strong><br/>Collisions: ${d.data.value.toLocaleString()}<br/>Percentage: ${percentage}%`);
             })
             .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
@@ -390,84 +408,64 @@ function drawImpactChart() {
             })
             .on("mouseout", function () {
                 d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("d", arc)
-                    .style("opacity", 0.9);
+                    .style("opacity", 0.85)
+                    .attr("stroke-width", 2);
 
                 tooltip.style("visibility", "hidden");
             })
             .transition()
-            .duration(1000)
-            .attrTween("d", function (d) {
-                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
-                return function (t) {
-                    return arc(interpolate(t));
-                };
-            });
+            .duration(800)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0);
 
-        // Add percentage labels on slices
-        slices.append("text")
-            .attr("transform", d => `translate(${arc.centroid(d)})`)
+        // Add labels - impact type
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 - 10)
             .attr("text-anchor", "middle")
-            .style("font-size", "11px")
+            .style("font-size", d => {
+                const cellWidth = d.x1 - d.x0;
+                return cellWidth > 80 ? "13px" : "11px";
+            })
             .style("font-weight", "bold")
             .style("fill", "white")
             .style("opacity", 0)
-            .text(d => {
-                const percentage = ((d.data.count / total) * 100);
-                return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
-            })
+            .text(d => d.data.name)
             .transition()
-            .delay(1000)
-            .duration(500)
+            .delay(800)
+            .duration(400)
             .style("opacity", 1);
 
-        // Add center text
-        chart.selectAll(".center-text").remove();
-        
-        chart.append("text")
-            .attr("class", "center-text")
+        // Add count labels
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 + 8)
             .attr("text-anchor", "middle")
-            .attr("dy", "-0.5em")
-            .style("font-size", "24px")
-            .style("font-weight", "bold")
-            .style("fill", "#2c3e50")
-            .text(total.toLocaleString());
-
-        chart.append("text")
-            .attr("class", "center-text")
-            .attr("text-anchor", "middle")
-            .attr("dy", "1.2em")
             .style("font-size", "12px")
-            .style("fill", "#7f8c8d")
-            .text("Total Collisions");
+            .style("fill", "white")
+            .style("opacity", 0)
+            .text(d => d.data.value.toLocaleString())
+            .transition()
+            .delay(800)
+            .duration(400)
+            .style("opacity", 0.9);
 
-        // Update legend
-        svg.selectAll(".legend-item").remove();
-        
-        const legend = svg.append("g")
-            .attr("transform", `translate(20, 20)`);
-
-        const legendItems = legend.selectAll(".legend-item")
-            .data(impactData)
-            .enter()
-            .append("g")
-            .attr("class", "legend-item")
-            .attr("transform", (d, i) => `translate(0, ${i * 20})`);
-
-        legendItems.append("rect")
-            .attr("width", 12)
-            .attr("height", 12)
-            .attr("fill", d => colorScale(d.code))
-            .attr("rx", 2);
-
-        legendItems.append("text")
-            .attr("x", 18)
-            .attr("y", 10)
+        // Add percentage labels
+        cells.append("text")
+            .attr("x", d => (d.x1 - d.x0) / 2)
+            .attr("y", d => (d.y1 - d.y0) / 2 + 23)
+            .attr("text-anchor", "middle")
             .style("font-size", "11px")
-            .style("fill", "#333")
-            .text(d => d.label);
+            .style("fill", "white")
+            .style("opacity", 0)
+            .text(d => {
+                const percentage = ((d.data.value / total) * 100).toFixed(1);
+                return `${percentage}%`;
+            })
+            .transition()
+            .delay(800)
+            .duration(400)
+            .style("opacity", 0.8);
     }
 
     // Load vehicles and collisions data
@@ -1299,27 +1297,19 @@ function drawAgeChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = { top: 40, right: 20, bottom: 20, left: 20 };
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
+    const radius = Math.min(width, height) / 2;
 
     const chart = svg.append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Add title
-    svg.append("text")
-        .attr("x", containerWidth / 2)
-        .attr("y", 20)
-        .attr("text-anchor", "middle")
-        .style("font-size", "16px")
-        .style("font-weight", "bold")
-        .style("fill", "#333");
+        .attr("transform", `translate(${containerWidth / 2},${containerHeight / 2})`);
 
     // Create tooltip
-    let tooltip = d3.select("#age-tree-tooltip");
+    let tooltip = d3.select("#age-pie-tooltip");
     if (tooltip.empty()) {
         tooltip = d3.select("body").append("div")
-            .attr("id", "age-tree-tooltip")
+            .attr("id", "age-pie-tooltip")
             .style("position", "absolute")
             .style("visibility", "hidden")
             .style("background-color", "rgba(0, 0, 0, 0.8)")
@@ -1385,6 +1375,21 @@ function drawAgeChart() {
         })).filter(d => d.count > 0);
     }
 
+    // Pie generator
+    const pie = d3.pie()
+        .value(d => d.count)
+        .sort(null);
+
+    // Arc generator
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius - 20);
+
+    // Arc for hover effect
+    const arcHover = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius - 10);
+
     // Load and process data
     d3.csv("Raw%20Dataset/vehicles_2024.csv").then(function (data) {
         // Filter vehicles by active vehicle type filters, engine CC filters, AND vehicle age filters
@@ -1399,52 +1404,29 @@ function drawAgeChart() {
         const ageData = countByAgeGroup(filteredData);
         const total = d3.sum(ageData, d => d.count);
 
-        // Create hierarchical data structure for treemap
-        const hierarchicalData = {
-            name: "Age Groups",
-            children: ageData.map(d => ({
-                name: d.group,
-                value: d.count
-            }))
-        };
-
-        // Create treemap layout
-        const treemap = d3.treemap()
-            .size([width, height])
-            .padding(2)
-            .round(true);
-
-        // Create hierarchy
-        const root = d3.hierarchy(hierarchicalData)
-            .sum(d => d.value)
-            .sort((a, b) => b.value - a.value);
-
-        // Generate treemap
-        treemap(root);
-
-        // Create cells
-        const cells = chart.selectAll("g")
-            .data(root.leaves())
+        // Create pie slices
+        const slices = chart.selectAll(".arc")
+            .data(pie(ageData))
             .enter()
             .append("g")
-            .attr("transform", d => `translate(${d.x0},${d.y0})`);
+            .attr("class", "arc");
 
-        // Add rectangles
-        cells.append("rect")
-            .attr("width", 0)
-            .attr("height", 0)
-            .attr("fill", d => colorScale(d.data.name))
+        slices.append("path")
+            .attr("d", arc)
+            .attr("fill", d => colorScale(d.data.group))
             .attr("stroke", "white")
             .attr("stroke-width", 2)
-            .style("opacity", 0.85)
+            .style("opacity", 0.9)
             .on("mouseover", function (event, d) {
                 d3.select(this)
-                    .style("opacity", 1)
-                    .attr("stroke-width", 3);
+                    .transition()
+                    .duration(200)
+                    .attr("d", arcHover)
+                    .style("opacity", 1);
 
-                const percentage = ((d.data.value / total) * 100).toFixed(1);
+                const percentage = ((d.data.count / total) * 100).toFixed(1);
                 tooltip.style("visibility", "visible")
-                    .html(`<strong>${d.data.name}</strong><br/>Collisions: ${d.data.value.toLocaleString()}<br/>Percentage: ${percentage}%`);
+                    .html(`<strong>${d.data.group}</strong><br/>Collisions: ${d.data.count.toLocaleString()}<br/>Percentage: ${percentage}%`);
             })
             .on("mousemove", function (event) {
                 tooltip.style("top", (event.pageY - 10) + "px")
@@ -1452,61 +1434,62 @@ function drawAgeChart() {
             })
             .on("mouseout", function () {
                 d3.select(this)
-                    .style("opacity", 0.85)
-                    .attr("stroke-width", 2);
+                    .transition()
+                    .duration(200)
+                    .attr("d", arc)
+                    .style("opacity", 0.9);
 
                 tooltip.style("visibility", "hidden");
             })
             .transition()
-            .duration(800)
-            .attr("width", d => d.x1 - d.x0)
-            .attr("height", d => d.y1 - d.y0);
+            .duration(1000)
+            .attrTween("d", function (d) {
+                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                return function (t) {
+                    return arc(interpolate(t));
+                };
+            });
 
         // Add labels
-        cells.append("text")
-            .attr("x", d => (d.x1 - d.x0) / 2)
-            .attr("y", d => (d.y1 - d.y0) / 2 - 10)
+        slices.append("text")
+            .attr("transform", d => `translate(${arc.centroid(d)})`)
             .attr("text-anchor", "middle")
-            .style("font-size", "14px")
+            .style("font-size", "11px")
             .style("font-weight", "bold")
             .style("fill", "white")
             .style("opacity", 0)
-            .text(d => d.data.name)
-            .transition()
-            .delay(800)
-            .duration(400)
-            .style("opacity", 1);
-
-        // Add count labels
-        cells.append("text")
-            .attr("x", d => (d.x1 - d.x0) / 2)
-            .attr("y", d => (d.y1 - d.y0) / 2 + 10)
-            .attr("text-anchor", "middle")
-            .style("font-size", "12px")
-            .style("fill", "white")
-            .style("opacity", 0)
-            .text(d => d.data.value.toLocaleString())
-            .transition()
-            .delay(800)
-            .duration(400)
-            .style("opacity", 0.9);
-
-        // Add percentage labels
-        cells.append("text")
-            .attr("x", d => (d.x1 - d.x0) / 2)
-            .attr("y", d => (d.y1 - d.y0) / 2 + 25)
-            .attr("text-anchor", "middle")
-            .style("font-size", "11px")
-            .style("fill", "white")
-            .style("opacity", 0)
             .text(d => {
-                const percentage = ((d.data.value / total) * 100).toFixed(1);
-                return `${percentage}%`;
+                const percentage = ((d.data.count / total) * 100);
+                return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
             })
             .transition()
-            .delay(800)
-            .duration(400)
-            .style("opacity", 0.8);
+            .delay(1000)
+            .duration(500)
+            .style("opacity", 1);
+
+        // Add legend
+        const legend = svg.append("g")
+            .attr("transform", `translate(20, 20)`);
+
+        const legendItems = legend.selectAll(".legend-item")
+            .data(ageData)
+            .enter()
+            .append("g")
+            .attr("class", "legend-item")
+            .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+        legendItems.append("rect")
+            .attr("width", 12)
+            .attr("height", 12)
+            .attr("fill", d => colorScale(d.group))
+            .attr("rx", 2);
+
+        legendItems.append("text")
+            .attr("x", 18)
+            .attr("y", 10)
+            .style("font-size", "11px")
+            .style("fill", "#333")
+            .text(d => `${d.group}`);
 
     }).catch(function (error) {
         console.error("Error loading the data:", error);
@@ -1520,6 +1503,7 @@ function drawAgeChart() {
 
 // Initialize age chart
 drawAgeChart();
+
 
 // Setup reset button event listener
 document.addEventListener('DOMContentLoaded', function () {
