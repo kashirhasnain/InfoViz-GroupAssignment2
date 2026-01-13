@@ -2,6 +2,9 @@ let gbTopo = null;
 let regionsGeoJSON = null;
 let gbBorders = null;
 
+/* ============================
+   Labels
+============================ */
 const severityLabels = new Map([
   [1, "Fatal"],
   [2, "Serious"],
@@ -22,6 +25,9 @@ const casualtyClassLabels = new Map([
   [-1, "Unknown"]
 ]);
 
+/* ============================
+   Colors
+============================ */
 const COLORS = {
   neutralText: "#111827",
   neutralGray: "#6B7280",
@@ -68,6 +74,56 @@ let activeGenders = new Set([1,2,-1]);
 let mapMode = "GRID";
 let mapFocusFatal = false;
 let mapZoomK = 1;
+
+let brush = {
+  kind: null,
+  values: new Set()
+};
+
+function clearBrush(){
+  brush.kind = null;
+  brush.values = new Set();
+}
+
+function hasBrush(){
+  return brush.kind !== null && brush.values.size > 0;
+}
+
+function toggleBrush(kind, value, multi){
+  const v = String(value);
+
+  if (brush.kind !== kind){
+    brush.kind = kind;
+    brush.values = new Set([v]);
+    return;
+  }
+
+  if (!multi){
+    if (brush.values.size === 1 && brush.values.has(v)){
+      clearBrush();
+      return;
+    }
+    brush.values = new Set([v]);
+    return;
+  }
+
+  if (brush.values.has(v)) brush.values.delete(v);
+  else brush.values.add(v);
+
+  if (brush.values.size === 0) clearBrush();
+}
+
+function isDatumBrushed(d){
+  if (!hasBrush()) return true;
+
+  if (brush.kind === "SEVERITY"){
+    return brush.values.has(String(+d.collision_severity));
+  }
+  if (brush.kind === "VEHICLE"){
+    return brush.values.has(String(getVehicleGroup(d.vehicle_type)));
+  }
+  return true;
+}
 
 /* ============================
    Tooltip helpers
@@ -169,8 +225,14 @@ function updateFiltersLabel(){
   const clsTxt  = activeCasualtyClasses.size >= 4 ? "ALL" : `${activeCasualtyClasses.size} classes`;
   const genTxt  = activeGenders.size >= 3 ? "ALL" : `${activeGenders.size} genders`;
 
+  const brushTxt = !hasBrush()
+    ? "Brush: none"
+    : (brush.kind === "SEVERITY"
+      ? `Brush: Severity = ${Array.from(brush.values).map(v=>severityLabels.get(+v) || v).join(", ")}`
+      : `Brush: Vehicle = ${Array.from(brush.values).join(", ")}`);
+
   d3.select("#activeFiltersLabel").text(
-    `Current: ${yCur} | Prior: ${yPrior} | Severity: ${sevTxt} | Speed: ${speedTxt} | Age: ${agesTxt} | Class: ${clsTxt} | Gender: ${genTxt}`
+    `Current: ${yCur} | Prior: ${yPrior} | Severity: ${sevTxt} | Speed: ${speedTxt} | Age: ${agesTxt} | Class: ${clsTxt} | Gender: ${genTxt} | ${brushTxt}`
   );
 }
 
@@ -298,6 +360,11 @@ function drawSeverityBar(data){
   const svg = el.append("svg").attr("width", w).attr("height", h);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
+  svg.on("click", () => {
+    clearBrush();
+    render();
+  });
+
   const sevOrder = [1,2,3];
   const counts = sevOrder.map(s => ({
     sev: s,
@@ -325,7 +392,7 @@ function drawSeverityBar(data){
 
   const minBarPx = 6;
 
-  g.selectAll("rect.bar")
+  const bars = g.selectAll("rect.bar")
     .data(counts)
     .enter()
     .append("rect")
@@ -336,7 +403,33 @@ function drawSeverityBar(data){
     .attr("width", d => (d.count > 0 ? Math.max(minBarPx, x(d.count)) : 0))
     .attr("rx", 6)
     .attr("fill", d => COLORS.severity[d.sev] || COLORS.unknown)
-    .on("mousemove", (event, d) => showTooltip(`<b>${d.label}</b><br/>Casualty records: ${fmtInt(d.count)}`, event))
+    .style("cursor","pointer")
+    .style("opacity", d => {
+      if (!hasBrush()) return 1;
+      if (brush.kind !== "SEVERITY") return 0.55;
+      return brush.values.has(String(d.sev)) ? 1 : 0.18;
+    })
+    .attr("stroke", d => {
+      if (!hasBrush()) return "none";
+      if (brush.kind !== "SEVERITY") return "none";
+      return brush.values.has(String(d.sev)) ? "#111827" : "none";
+    })
+    .attr("stroke-width", d => {
+      if (!hasBrush()) return 0;
+      if (brush.kind !== "SEVERITY") return 0;
+      return brush.values.has(String(d.sev)) ? 1.2 : 0;
+    })
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      toggleBrush("SEVERITY", d.sev, event.shiftKey);
+      render();
+    })
+    .on("mousemove", (event, d) => showTooltip(
+      `<b>${d.label}</b><br/>
+       Casualty records: ${fmtInt(d.count)}<br/>
+       <span style="color:${COLORS.neutralGray}">Click to brush (Shift+click multi)</span>`,
+      event
+    ))
     .on("mouseout", hideTooltip);
 
   const pad = 8;
@@ -357,7 +450,16 @@ function drawSeverityBar(data){
   labels
     .attr("x", d => (d.count > 0 ? Math.max(minBarPx, x(d.count)) : 0) + pad)
     .attr("text-anchor","start")
-    .style("fill", COLORS.neutralText);
+    .style("fill", d => {
+      if (!hasBrush()) return COLORS.neutralText;
+      if (brush.kind !== "SEVERITY") return COLORS.neutralText;
+      return brush.values.has(String(d.sev)) ? COLORS.neutralText : COLORS.neutralGray;
+    })
+    .style("opacity", d => {
+      if (!hasBrush()) return 1;
+      if (brush.kind !== "SEVERITY") return 0.75;
+      return brush.values.has(String(d.sev)) ? 1 : 0.35;
+    });
 
   labels.each(function(d){
     const t = d3.select(this);
@@ -377,8 +479,7 @@ function drawSeverityBar(data){
       } else {
         const clampedX = Math.max(0, maxX - textW);
         t.attr("x", clampedX)
-          .attr("text-anchor","start")
-          .style("fill", COLORS.neutralText);
+          .attr("text-anchor","start");
       }
     }
   });
@@ -651,6 +752,11 @@ function drawVehicleBar(data){
   const svg = el.append("svg").attr("width", w).attr("height", h);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
+  svg.on("click", () => {
+    clearBrush();
+    render();
+  });
+
   const grouped = d3.rollups(
     data,
     v => v.length,
@@ -688,20 +794,39 @@ function drawVehicleBar(data){
     .attr("width", d => x(d.count))
     .attr("rx", 6)
     .attr("fill", COLORS.neutralGray)
-    .style("opacity", 0.9)
+    .style("cursor","pointer")
+    .style("opacity", d => {
+      if (!hasBrush()) return 0.9;
+      if (brush.kind !== "VEHICLE") return 0.45;
+      return brush.values.has(String(d.group)) ? 1 : 0.16;
+    })
+    .attr("stroke", d => {
+      if (!hasBrush()) return "none";
+      if (brush.kind !== "VEHICLE") return "none";
+      return brush.values.has(String(d.group)) ? "#111827" : "none";
+    })
+    .attr("stroke-width", d => {
+      if (!hasBrush()) return 0;
+      if (brush.kind !== "VEHICLE") return 0;
+      return brush.values.has(String(d.group)) ? 1.2 : 0;
+    })
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      toggleBrush("VEHICLE", d.group, event.shiftKey);
+      render();
+    })
     .on("mousemove", (event, d) => {
       const fatal = data.filter(x => getVehicleGroup(x.vehicle_type) === d.group && +x.collision_severity === 1).length;
       const fatalShare = d.count > 0 ? (fatal/d.count*100) : 0;
       showTooltip(
-        `<b>${d.group}</b><br/>Casualty records: ${fmtInt(d.count)}<br/>Fatal share: ${fatalShare.toFixed(1)}%`,
+        `<b>${d.group}</b><br/>
+         Casualty records: ${fmtInt(d.count)}<br/>
+         Fatal share: ${fatalShare.toFixed(1)}%<br/>
+         <span style="color:${COLORS.neutralGray}">Click to brush (Shift+click multi)</span>`,
         event
       );
-      d3.select(event.currentTarget).style("opacity", 1);
     })
-    .on("mouseout", (event) => {
-      hideTooltip();
-      d3.select(event.currentTarget).style("opacity", 0.9);
-    });
+    .on("mouseout", hideTooltip);
 
   g.selectAll("text.val")
     .data(grouped, d => d.group)
@@ -713,7 +838,16 @@ function drawVehicleBar(data){
     .attr("dy","0.35em")
     .style("font-size","12px")
     .style("font-weight","900")
-    .style("fill", COLORS.neutralText)
+    .style("fill", d => {
+      if (!hasBrush()) return COLORS.neutralText;
+      if (brush.kind !== "VEHICLE") return COLORS.neutralGray;
+      return brush.values.has(String(d.group)) ? COLORS.neutralText : COLORS.neutralGray;
+    })
+    .style("opacity", d => {
+      if (!hasBrush()) return 1;
+      if (brush.kind !== "VEHICLE") return 0.65;
+      return brush.values.has(String(d.group)) ? 1 : 0.35;
+    })
     .text(d => fmtInt(d.count));
 }
 
@@ -750,6 +884,11 @@ function drawMap(data){
 
   const svg = el.append("svg").attr("width", w).attr("height", h);
   const root = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  svg.on("click", () => {
+    clearBrush();
+    render();
+  });
 
   root.append("rect")
     .attr("x",0).attr("y",0)
@@ -808,6 +947,23 @@ function drawMap(data){
     return 0.12;
   }
 
+  function brushedOpacityForPoint(d){
+    if (!hasBrush()) return baseOpacityForSeverity(+d.collision_severity);
+
+    const ok = isDatumBrushed(d);
+
+    if (ok) return Math.min(0.95, baseOpacityForSeverity(+d.collision_severity) + 0.35);
+    return 0.06;
+  }
+
+  function brushedRadiusForPoint(d){
+    if (!hasBrush()) return (+d.collision_severity === 1 ? 1.9 : 1.4);
+
+    const ok = isDatumBrushed(d);
+    if (ok) return (+d.collision_severity === 1 ? 3.0 : 2.4);
+    return (+d.collision_severity === 1 ? 1.6 : 1.2);
+  }
+
   const zoom = d3.zoom()
     .scaleExtent([1, 10])
     .on("zoom", (event) => {
@@ -843,29 +999,48 @@ function drawMap(data){
           const p = projection([+d.longitude, +d.latitude]);
           return p ? p[1] : -9999;
         })
-        .attr("r", d => (+d.collision_severity === 1 ? 1.9 : 1.4))
+        .attr("r", d => brushedRadiusForPoint(d))
         .attr("fill", d => sevColor(+d.collision_severity))
-        .attr("opacity", d => baseOpacityForSeverity(+d.collision_severity))
+        .attr("opacity", d => brushedOpacityForPoint(d))
+        .style("cursor","pointer")
+        .attr("stroke", "none")
+        .on("click", (event, d) => {
+          event.stopPropagation();
+
+          const multi = event.shiftKey;
+
+          if (event.altKey){
+            toggleBrush("VEHICLE", getVehicleGroup(d.vehicle_type), multi);
+          } else {
+            toggleBrush("SEVERITY", +d.collision_severity, multi);
+          }
+          render();
+        })
         .on("mousemove", (event, d) => {
           const sevLabel = severityLabels.get(+d.collision_severity) || String(d.collision_severity);
+          const vg = getVehicleGroup(d.vehicle_type);
+
           showTooltip(
             `<b>Casualty record</b><br/>
              collision_index: ${d.collision_index}<br/>
              date: ${String(d.date).slice(0,10)}<br/>
              severity: ${sevLabel}<br/>
+             vehicle: ${vg}<br/>
              speed_limit: ${d.speed_limit}<br/>
-             lon/lat: ${(+d.longitude).toFixed(4)}, ${( +d.latitude).toFixed(4)}`,
+             lon/lat: ${(+d.longitude).toFixed(4)}, ${( +d.latitude).toFixed(4)}<br/>
+             <span style="color:${COLORS.neutralGray}">Click = brush severity • Alt+click = brush vehicle</span>`,
             event
           );
+
           d3.select(event.currentTarget)
-            .attr("opacity", 0.95)
-            .attr("r", 3.1);
+            .attr("opacity", 0.98)
+            .attr("r", 3.3);
         })
         .on("mouseout", (event, d) => {
           hideTooltip();
           d3.select(event.currentTarget)
-            .attr("opacity", baseOpacityForSeverity(+d.collision_severity))
-            .attr("r", (+d.collision_severity === 1 ? 1.9 : 1.4));
+            .attr("opacity", brushedOpacityForPoint(d))
+            .attr("r", brushedRadiusForPoint(d));
         });
 
     } else {
@@ -912,6 +1087,23 @@ function drawMap(data){
         return -1;
       }
 
+      function brushedOpacityForCell(bin){
+        const dom = dominantSeverity(bin);
+
+        if (!hasBrush()) return aScale(bin.n);
+
+        if (brush.kind === "SEVERITY"){
+          const ok = brush.values.has(String(dom));
+          return ok ? Math.min(1, aScale(bin.n) + 0.20) : 0.05;
+        }
+
+        if (brush.kind === "VEHICLE"){
+          return 0.25;
+        }
+
+        return aScale(bin.n);
+      }
+
       const gridLayer = mapG.append("g").attr("class","d2-map-grid");
 
       gridLayer.selectAll("rect")
@@ -923,8 +1115,30 @@ function drawMap(data){
         .attr("width", cell)
         .attr("height", cell)
         .attr("fill", d => sevColor(dominantSeverity(d)))
-        .attr("opacity", d => aScale(d.n))
+        .attr("opacity", d => brushedOpacityForCell(d))
+        .style("cursor","pointer")
+        .attr("stroke", d => {
+          if (!hasBrush()) return "none";
+          if (brush.kind !== "SEVERITY") return "none";
+          const dom = dominantSeverity(d);
+          return brush.values.has(String(dom)) ? "#111827" : "none";
+        })
+        .attr("stroke-width", d => {
+          if (!hasBrush()) return 0;
+          if (brush.kind !== "SEVERITY") return 0;
+          const dom = dominantSeverity(d);
+          return brush.values.has(String(dom)) ? 0.8 : 0;
+        })
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          const dom = dominantSeverity(d);
+          toggleBrush("SEVERITY", dom, event.shiftKey);
+          render();
+        })
         .on("mousemove", (event, d) => {
+          const dom = dominantSeverity(d);
+          const domLabel = severityLabels.get(dom) || String(dom);
+
           const f = d.sev.get(1) || 0;
           const se = d.sev.get(2) || 0;
           const sl = d.sev.get(3) || 0;
@@ -937,14 +1151,16 @@ function drawMap(data){
              Serious: ${fmtInt(se)}<br/>
              Slight: ${fmtInt(sl)}<br/>
              Unknown: ${fmtInt(u)}<br/>
-             <span style="color:${COLORS.neutralGray}">Zoom in for local detail</span>`,
+             Dominant: <b>${domLabel}</b><br/>
+             <span style="color:${COLORS.neutralGray}">Click = brush dominant severity</span>`,
             event
           );
-          d3.select(event.currentTarget).attr("opacity", Math.min(1, aScale(d.n) + 0.18));
+
+          d3.select(event.currentTarget).attr("opacity", Math.min(1, brushedOpacityForCell(d) + 0.18));
         })
         .on("mouseout", (event, d) => {
           hideTooltip();
-          d3.select(event.currentTarget).attr("opacity", aScale(d.n));
+          d3.select(event.currentTarget).attr("opacity", brushedOpacityForCell(d));
         });
     }
   }
@@ -955,18 +1171,57 @@ function drawMap(data){
   function statusText(){
     const mode = (mapMode === "POINTS") ? "Points" : "Grid";
     const fatal = mapFocusFatal ? " with Fatal Focus" : "";
-    return `Mode: ${mode}${fatal} - scroll to zoom, drag to pan`;
+    const brushInfo = !hasBrush()
+      ? "Brush: none"
+      : (brush.kind === "SEVERITY"
+        ? `Brush: Severity = ${Array.from(brush.values).map(v=>severityLabels.get(+v) || v).join(", ")}`
+        : `Brush: Vehicle = ${Array.from(brush.values).join(", ")}`);
+    return `Mode: ${mode}${fatal} - scroll to zoom, drag to pan | ${brushInfo} (click empty area to clear)`;
   }
 
+// ============================
+// Status text
+// ============================
+function statusLines(){
+  const mode = (mapMode === "POINTS") ? "Points" : "Grid";
+  const fatal = mapFocusFatal ? " with Fatal Focus" : "";
+
+  const brushInfo = !hasBrush()
+    ? "Brush: none"
+    : (brush.kind === "SEVERITY"
+      ? `Brush: Severity = ${Array.from(brush.values).map(v=>severityLabels.get(+v) || v).join(", ")}`
+      : `Brush: Vehicle = ${Array.from(brush.values).join(", ")}`);
+
+  const line1 = `Mode: ${mode}${fatal} - scroll to zoom, drag to pan`;
+  const line2 = `${brushInfo} (click empty area to clear)`;
+
+  return [line1, line2];
+}
+
   const statusG = root.append("g").attr("class", "d2-map-status-layer");
-  statusG.append("text")
+
+  const yBase = innerH + statusH - 10;
+  const lineGap = 13;
+
+  const statusTextEl = statusG.append("text")
     .attr("class", "d2-map-status")
     .attr("x", 14)
-    .attr("y", innerH + statusH - 8)
+    .attr("y", yBase)
     .style("font-size","11px")
     .style("font-weight","800")
-    .style("fill", COLORS.neutralGray)
-    .text(statusText());
+    .style("fill", COLORS.neutralGray);
+
+  const [l1, l2] = statusLines();
+
+  statusTextEl.append("tspan")
+    .attr("x", 14)
+    .attr("dy", 0)
+    .text(l1);
+
+  statusTextEl.append("tspan")
+    .attr("x", 14)
+    .attr("dy", lineGap)
+    .text(l2);
 
   // legend
   const legendItems = [
@@ -1035,7 +1290,7 @@ function render(){
 }
 
 /* ============================
-   UI Helpers: All / None controls for checklists
+   UI Helpers
 ============================ */
 function addAllNoneControls(containerSelector, onAll, onNone){
   const box = d3.select(containerSelector);
@@ -1066,7 +1321,7 @@ function addAllNoneControls(containerSelector, onAll, onNone){
 }
 
 /* ============================
-   Build filter UI
+   Filter UI
 ============================ */
 function buildAgeChecklist(){
   const box = d3.select("#ageChecklist");
@@ -1205,7 +1460,7 @@ function buildSpeedSelect(){
 }
 
 /* ============================
-   Build YEAR selects
+   YEAR selects
 ============================ */
 function buildYearSelects(){
   const curSel = d3.select("#currentYearSelect");
@@ -1344,6 +1599,8 @@ function resetAll(){
   mapFocusFatal = false;
   mapZoomK = 1;
 
+  clearBrush();
+
   const maxY = yearsAvailable.length ? yearsAvailable[yearsAvailable.length - 1] : null;
   const secondMaxY = yearsAvailable.length >= 2 ? yearsAvailable[yearsAvailable.length - 2] : maxY;
   selectedYearCurrent = maxY;
@@ -1361,6 +1618,9 @@ function resetAll(){
   render();
 }
 
+/* ============================
+   Init
+============================ */
 async function init(){
   const gbUrl = "https://cdn.jsdelivr.net/gh/ONSvisual/topojson_boundaries@master/geogGBregion.json?short_path=6bd9372";
 
@@ -1411,6 +1671,16 @@ async function init(){
 
   d3.select("#btnReset").on("click", resetAll);
 
+  // Esc to clear brushing
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape"){
+      if (hasBrush()){
+        clearBrush();
+        render();
+      }
+    }
+  });
+
   render();
 
   requestAnimationFrame(() => {
@@ -1428,5 +1698,5 @@ window.addEventListener("resize", () => {
 
 init().catch(err => {
   console.error(err);
-  alert("df_final.csv or GB topojson was not uploaded.");
+  alert("csv or topojson was not uploaded.");
 });
