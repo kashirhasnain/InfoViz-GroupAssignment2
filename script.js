@@ -128,6 +128,10 @@ function resetFilters() {
     drawWeatherChart();
     d3.select('#ageChart').selectAll('*').remove();
     drawAgeChart();
+    // Refresh impact chart
+    if (window.updateImpactChart) {
+        window.updateImpactChart();
+    }
 }
 
 //Tabs Change Method
@@ -220,6 +224,310 @@ function drawVehicleStats() {
 }
 
 drawVehicleStats();
+// Vehicle Point of Impact Donut Chart
+function drawImpactChart() {
+    const container = d3.select("#impactChart");
+    const containerWidth = container.node().getBoundingClientRect().width || 400;
+    const containerHeight = 350;
+
+    // Clear any existing content
+    container.selectAll("*").remove();
+
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight);
+
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const width = containerWidth - margin.left - margin.right;
+    const height = containerHeight - margin.top - margin.bottom;
+    const radius = Math.min(width, height) / 2;
+
+    const chart = svg.append("g")
+        .attr("transform", `translate(${containerWidth / 2},${containerHeight / 2})`);
+
+    // Create tooltip
+    let tooltip = d3.select("#impact-tooltip");
+    if (tooltip.empty()) {
+        tooltip = d3.select("body").append("div")
+            .attr("id", "impact-tooltip")
+            .style("position", "absolute")
+            .style("visibility", "hidden")
+            .style("background-color", "rgba(0, 0, 0, 0.8)")
+            .style("color", "white")
+            .style("padding", "10px")
+            .style("border-radius", "5px")
+            .style("font-size", "12px")
+            .style("pointer-events", "none")
+            .style("z-index", "1000");
+    }
+
+    // Impact point labels and colors
+    const impactLabels = {
+        '0': 'Did not impact',
+        '1': 'Front',
+        '2': 'Back',
+        '3': 'Offside',
+        '4': 'Nearside',
+        '9': 'Unknown',
+        '-1': 'Missing data'
+    };
+
+    // Color scale for impact points
+    const colorScale = d3.scaleOrdinal()
+        .domain(['1', '2', '3', '4', '0', '9', '-1'])
+        .range([
+            '#3498db', // Front - blue
+            '#e74c3c', // Back - red
+            '#f39c12', // Offside - orange
+            '#9b59b6', // Nearside - purple
+            '#95a5a6', // Did not impact - gray
+            '#7f8c8d', // Unknown - dark gray
+            '#bdc3c7'  // Missing data - light gray
+        ]);
+
+    // Function to count collisions by impact point
+    function countByImpact(vehicles) {
+        const impactCounts = {
+            '0': 0,
+            '1': 0,
+            '2': 0,
+            '3': 0,
+            '4': 0,
+            '9': 0,
+            '-1': 0
+        };
+
+        const uniqueCollisions = {};
+
+        vehicles.forEach(vehicle => {
+            const impact = vehicle.first_point_of_impact || '-1';
+            const collisionId = vehicle.collision_index;
+
+            // Normalize impact code
+            const normalizedImpact = impact.trim();
+
+            // Track unique collisions per impact point
+            if (!uniqueCollisions[collisionId]) {
+                uniqueCollisions[collisionId] = new Set();
+            }
+
+            if (impactCounts.hasOwnProperty(normalizedImpact)) {
+                uniqueCollisions[collisionId].add(normalizedImpact);
+            } else {
+                uniqueCollisions[collisionId].add('-1'); // Missing/invalid data
+            }
+        });
+
+        // Count collisions for each impact point
+        Object.keys(uniqueCollisions).forEach(collisionId => {
+            uniqueCollisions[collisionId].forEach(impact => {
+                impactCounts[impact]++;
+            });
+        });
+
+        // Convert to array and filter out zero counts
+        return Object.keys(impactCounts)
+            .map(code => ({
+                code: code,
+                label: impactLabels[code],
+                count: impactCounts[code]
+            }))
+            .filter(d => d.count > 0);
+    }
+
+    // Pie generator
+    const pie = d3.pie()
+        .value(d => d.count)
+        .sort(null);
+
+    // Arc generators - donut chart style
+    const arc = d3.arc()
+        .innerRadius(radius * 0.5)  // Inner radius for donut
+        .outerRadius(radius - 20);
+
+    // Arc for hover effect
+    const arcHover = d3.arc()
+        .innerRadius(radius * 0.5)
+        .outerRadius(radius - 10);
+
+    // Function to update chart
+    function updateChart(impactData) {
+        const total = d3.sum(impactData, d => d.count);
+
+        // Remove old slices
+        chart.selectAll(".arc").remove();
+
+        // Create pie slices
+        const slices = chart.selectAll(".arc")
+            .data(pie(impactData))
+            .enter()
+            .append("g")
+            .attr("class", "arc");
+
+        slices.append("path")
+            .attr("d", arc)
+            .attr("fill", d => colorScale(d.data.code))
+            .attr("stroke", "white")
+            .attr("stroke-width", 2)
+            .style("opacity", 0.9)
+            .on("mouseover", function (event, d) {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("d", arcHover)
+                    .style("opacity", 1);
+
+                const percentage = ((d.data.count / total) * 100).toFixed(1);
+                tooltip.style("visibility", "visible")
+                    .html(`<strong>${d.data.label}</strong><br/>Collisions: ${d.data.count.toLocaleString()}<br/>Percentage: ${percentage}%`);
+            })
+            .on("mousemove", function (event) {
+                tooltip.style("top", (event.pageY - 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("d", arc)
+                    .style("opacity", 0.9);
+
+                tooltip.style("visibility", "hidden");
+            })
+            .transition()
+            .duration(1000)
+            .attrTween("d", function (d) {
+                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                return function (t) {
+                    return arc(interpolate(t));
+                };
+            });
+
+        // Add percentage labels on slices
+        slices.append("text")
+            .attr("transform", d => `translate(${arc.centroid(d)})`)
+            .attr("text-anchor", "middle")
+            .style("font-size", "11px")
+            .style("font-weight", "bold")
+            .style("fill", "white")
+            .style("opacity", 0)
+            .text(d => {
+                const percentage = ((d.data.count / total) * 100);
+                return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
+            })
+            .transition()
+            .delay(1000)
+            .duration(500)
+            .style("opacity", 1);
+
+        // Add center text
+        chart.selectAll(".center-text").remove();
+
+        chart.append("text")
+            .attr("class", "center-text")
+            .attr("text-anchor", "middle")
+            .attr("dy", "-0.5em")
+            .style("font-size", "24px")
+            .style("font-weight", "bold")
+            .style("fill", "#2c3e50")
+            .text(total.toLocaleString());
+
+        chart.append("text")
+            .attr("class", "center-text")
+            .attr("text-anchor", "middle")
+            .attr("dy", "1.2em")
+            .style("font-size", "12px")
+            .style("fill", "#7f8c8d")
+            .text("Total Collisions");
+
+        // Update legend
+        svg.selectAll(".legend-item").remove();
+
+        const legend = svg.append("g")
+            .attr("transform", `translate(20, 20)`);
+
+        const legendItems = legend.selectAll(".legend-item")
+            .data(impactData)
+            .enter()
+            .append("g")
+            .attr("class", "legend-item")
+            .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+        legendItems.append("rect")
+            .attr("width", 12)
+            .attr("height", 12)
+            .attr("fill", d => colorScale(d.code))
+            .attr("rx", 2);
+
+        legendItems.append("text")
+            .attr("x", 18)
+            .attr("y", 10)
+            .style("font-size", "11px")
+            .style("fill", "#333")
+            .text(d => d.label);
+    }
+
+    // Load vehicles and collisions data
+    Promise.all([
+        d3.csv("Raw%20Dataset/vehicles_2024.csv"),
+        d3.csv("Raw%20Dataset/collisions_2024.csv")
+    ]).then(function ([vehicles, collisions]) {
+
+        // Function to get filtered vehicles based on active filters
+        function getFilteredVehicles() {
+            if (activeVehicleFilters.size === 0) return [];
+
+            let filteredVehicles = vehicles.filter(vehicle => {
+                const vehicleType = vehicle.vehicle_type;
+                const group = vehicleGroups[vehicleType];
+                const matchesVehicle = group && activeVehicleFilters.has(group);
+                const matchesEngine = matchesEngineFilter(vehicle.engine_capacity_cc);
+                const matchesAge = matchesVehicleAgeFilter(vehicle.age_of_vehicle);
+
+                return matchesVehicle && matchesEngine && matchesAge;
+            });
+
+            // Apply month filter if set
+            if (activeMonthFilter !== '') {
+                const validCollisionIds = new Set();
+                collisions.forEach(collision => {
+                    const collisionMonth = getMonthFromDate(collision.date);
+                    if (collisionMonth === parseInt(activeMonthFilter)) {
+                        validCollisionIds.add(collision.collision_index);
+                    }
+                });
+
+                filteredVehicles = filteredVehicles.filter(vehicle =>
+                    validCollisionIds.has(vehicle.collision_index)
+                );
+            }
+
+            return filteredVehicles;
+        }
+
+        // Initial draw
+        const initialData = countByImpact(getFilteredVehicles());
+        updateChart(initialData);
+
+        // Store update function globally so filters can refresh this chart
+        window.updateImpactChart = function () {
+            const filteredData = countByImpact(getFilteredVehicles());
+            updateChart(filteredData);
+        };
+
+
+    }).catch(function (error) {
+        console.error("Error loading impact data:", error);
+        container.append("div")
+            .style("padding", "20px")
+            .style("text-align", "center")
+            .style("color", "#e74c3c")
+            .text("Error loading impact data");
+    });
+}
+
+// Initialize impact chart
+drawImpactChart();
 
 //                                 Weather Conditions Bar Chart
 function drawWeatherChart() {
@@ -518,6 +826,37 @@ function drawWeatherChart() {
                     // Refresh weather chart
                     const filteredData = countByWeather(getFilteredCollisions());
                     updateChart(filteredData);
+                    // Refresh impact chart
+                    if (window.updateImpactChart) {
+                        window.updateImpactChart();
+                    }
+
+                    // Refresh age chart
+                    d3.select('#ageChart').selectAll('*').remove();
+                    drawAgeChart();
+                });
+            }
+        });
+
+        // Setup Engine CC filter event listeners
+        ['cc100', 'cc500', 'cc1000', 'cc2000'].forEach(filterId => {
+            const checkbox = document.getElementById(filterId);
+            if (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    // Update active engine filters
+                    if (this.checked) {
+                        activeEngineFilters.add(filterId);
+                    } else {
+                        activeEngineFilters.delete(filterId);
+                    }
+
+                    // Refresh weather chart
+                    const filteredData = countByWeather(getFilteredCollisions());
+                    updateChart(filteredData);
+                    // Refresh impact chart
+                    if (window.updateImpactChart) {
+                        window.updateImpactChart();
+                    }
 
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
@@ -545,29 +884,10 @@ function drawWeatherChart() {
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
-                });
-            }
-        });
-
-        // Setup Engine CC filter event listeners
-        ['cc100', 'cc500', 'cc1000', 'cc2000'].forEach(filterId => {
-            const checkbox = document.getElementById(filterId);
-            if (checkbox) {
-                checkbox.addEventListener('change', function () {
-                    // Update active engine filters
-                    if (this.checked) {
-                        activeEngineFilters.add(filterId);
-                    } else {
-                        activeEngineFilters.delete(filterId);
+                    // Refresh impact chart
+                    if (window.updateImpactChart) {
+                        window.updateImpactChart();
                     }
-
-                    // Refresh weather chart
-                    const filteredData = countByWeather(getFilteredCollisions());
-                    updateChart(filteredData);
-
-                    // Refresh age chart
-                    d3.select('#ageChart').selectAll('*').remove();
-                    drawAgeChart();
                 });
             }
         });
@@ -591,6 +911,10 @@ function drawWeatherChart() {
                     // Refresh age chart
                     d3.select('#ageChart').selectAll('*').remove();
                     drawAgeChart();
+                    // Refresh impact chart
+                    if (window.updateImpactChart) {
+                        window.updateImpactChart();
+                    }
                 });
             }
         });
@@ -609,6 +933,10 @@ function drawWeatherChart() {
                 drawVehicleStats();
                 if (window.updateDistanceChart) {
                     window.updateDistanceChart();
+                }
+                // Refresh impact chart
+                if (window.updateImpactChart) {
+                    window.updateImpactChart();
                 }
 
                 // Refresh age chart
