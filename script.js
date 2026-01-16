@@ -561,7 +561,8 @@ function drawWeatherChart() {
         .attr("width", containerWidth)
         .attr("height", containerHeight);
 
-    const margin = { top: 20, right: 80, bottom: 60, left: 120 };
+
+    const margin = { top: 40, right: 80, bottom: 60, left: 140 };
     const chartWidth = containerWidth - margin.left - margin.right;
     const chartHeight = containerHeight - margin.top - margin.bottom;
 
@@ -729,7 +730,17 @@ function drawWeatherChart() {
             .attr("transform", `translate(0,${chartHeight})`)
             .call(d3.axisBottom(x).ticks(5).tickFormat(d3.format(",d")))
             .selectAll("text")
-            .style("font-size", "10px");
+            .style("font-size", "10px")
+    
+        // Add x-axis label
+        chart.append("text")
+            .attr("x", chartWidth / 2)
+            .attr("y", chartHeight + 45)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666")
+            .text("Number of Collisions");
+        
 
         chart.append("g")
             .attr("class", "y-axis")
@@ -750,6 +761,18 @@ function drawWeatherChart() {
             .on("mouseout", function () {
                 tooltip.style("visibility", "hidden");
             });
+
+                    // Y Axis Label
+        chart.append("text")
+            .attr("class", "axis-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -chartHeight / 2)
+            .attr("y", -130 )
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666")
+            .text("Weather Conditions");
+    
     }
 
     // Load both collision and vehicle data
